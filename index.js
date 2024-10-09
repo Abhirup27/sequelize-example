@@ -4,6 +4,7 @@ const app = express();
 const mariadb = require("mariadb");
 
 const db = require('./models');
+const { User } = require('./models');
 const { Sequelize } = require('sequelize');
 
 async function createDatabaseIfNotExists(dbName, dbUser, dbPassword, dbHost) {
@@ -33,6 +34,31 @@ async function createDatabaseIfNotExists(dbName, dbUser, dbPassword, dbHost) {
 
   return sequelize;
 }
+
+app.get('/select', (req, res) => {
+  User.findAll({where: {firstName: "Hexa"}}).then((users) => {
+    res.send(users);
+  }).catch((err) => {
+    console.log(err);
+  });
+  //res.send('select');
+});
+app.get('/insert', (req, res) => {
+    User.create({
+    firstName: "Hexa",
+    age:29,
+  }).catch((err) => {
+    if (err)
+    {
+      console.log(err);
+    }
+  })
+  res.send('insert');
+});
+app.get('/delete', (req, res) => {
+  User.destroy({ where: { id: 5 } });
+  res.send('delete');
+});
 db.sequelize.sync().then((req) => {
 
     app.listen(3000, () => {
