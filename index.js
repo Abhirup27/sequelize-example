@@ -1,14 +1,10 @@
 const express = require("express");
 const app = express();
-
-const mariadb = require("mariadb");
-
-const db = require('./models');
-const { User } = require('./models');
+require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
 async function createDatabaseIfNotExists(dbName, dbUser, dbPassword, dbHost) {
-  // Create a temporary Sequelize instance without specifying a database
+   // Create a temporary Sequelize instance without specifying a database
   const tempSequelize = new Sequelize('', dbUser, dbPassword, {
     host: dbHost,
     dialect: 'mariadb'
@@ -35,36 +31,45 @@ async function createDatabaseIfNotExists(dbName, dbUser, dbPassword, dbHost) {
   return sequelize;
 }
 
-app.get('/select', (req, res) => {
-  User.findAll({where: {firstName: "Hexa"}}).then((users) => {
-    res.send(users);
-  }).catch((err) => {
-    console.log(err);
-  });
-  //res.send('select');
-});
-app.get('/insert', (req, res) => {
-    User.create({
-    firstName: "Hexa",
-    age:29,
-  }).catch((err) => {
-    if (err)
-    {
-      console.log(err);
-    }
-  })
-  res.send('insert');
-});
-app.get('/delete', (req, res) => {
-  User.destroy({ where: { id: 5 } });
-  res.send('delete');
-});
-db.sequelize.sync().then((req) => {
+// Create the database before requiring models
+createDatabaseIfNotExists(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, process.env.DB_HOST)
+  .then(() => {
+    const db = require('./models');
+    const { User } = db;
 
-    app.listen(3000, () => {
-        console.log("server running");
+    app.get('/select', (req, res) => {
+      User.findAll({where: {firstName: "Hexa"}}).then((users) => {
+        res.send(users);
+      }).catch((err) => {
+        console.log(err);
+      });
     });
 
-});
-createDatabaseIfNotExists('database_development', 'root', 'ABHIrup_27', 'localhost')
+    app.get('/insert', (req, res) => {
+      User.create({
+        firstName: "Hexa",
+        age:29,
+      }).catch((err) => {
+        if (err) {
+          console.log(err);
+        }
+      })
+      res.send('insert');
+    });
 
+    app.get('/delete', (req, res) => {
+      User.destroy({ where: { id: 5 } });
+      res.send('delete');
+    });
+
+    db.sequelize.sync({  }).then(() => {
+      app.listen(3000, () => {
+        console.log("server running");
+      });
+    }).catch((err) => {
+      console.error("Error syncing database:", err);
+    });
+  })
+  .catch((err) => {
+    console.error("Error creating database:", err);
+  });
